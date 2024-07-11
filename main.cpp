@@ -31,12 +31,12 @@ Vector3 Bezier(const Vector3& p0, const Vector3& p1, float t) {
 	return c;
 }
 
-Vector3 World(Vector3 a)
-{
-	a.y += -500;
-	a.y *= -1;
-	return a;
-}
+//Vector3 World(Vector3 a)
+//{
+//	a.y += -500;
+//	a.y *= -1;
+//	return a;
+//}
 
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
 	const float kGridHandleWidth = 2.0f;
@@ -75,14 +75,41 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 }
 
 
-//void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2,
-//	const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-//
-//	
-//
-//
-//
-//}
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2,
+	const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	
+	uint32_t link = 32;
+	uint32_t index = 0;
+	
+	Vector3 p0Screen = Transform(Transform(controlPoint0, viewProjectionMatrix), viewportMatrix);
+	Vector3 p1Screen = Transform(Transform(controlPoint1, viewProjectionMatrix), viewportMatrix);
+	Vector3 p2Screen = Transform(Transform(controlPoint2, viewProjectionMatrix), viewportMatrix);
+
+	Vector3 a = Transform(Transform(controlPoint0, viewProjectionMatrix), viewportMatrix);
+
+	Novice::DrawEllipse((int)a.x, (int)a.y, 5, 5, 0.0f, BLACK, kFillModeSolid);
+	Novice::DrawEllipse((int)p1Screen.x, (int)p1Screen.y, 5, 5, 0.0f, BLACK, kFillModeSolid);
+	Novice::DrawEllipse((int)p2Screen.x, (int)p2Screen.y, 5, 5, 0.0f, BLACK, kFillModeSolid);
+
+
+	for (index = 0; index < link; index++) {
+		float t0 = index / float(link);
+		float t1 = index / float(link);
+
+		Vector3 bezier0 = Bezier(p0Screen, p1Screen, t0);
+		Vector3 bezier1 = Bezier(p1Screen, p2Screen, t1);
+		Vector3 p = Bezier(bezier0, bezier1, t0);
+
+		if (index == 0) {
+			Novice::DrawLine((int)p0Screen.x, (int)p0Screen.y, (int)a.x, (int)a.y, RED);
+		}
+		else {
+			Novice::DrawLine((int)a.x, (int)a.y, (int)p.x, (int)p.y, color);
+		}
+		a.x = p.x;
+		a.y = p.y;
+	}
+}
 
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -95,17 +122,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	char keys[256] = {0};
 	char preKeys[256] = {0};
 
-	Vector3 p0 = { 100.0f,100.0f,10.0f };
-	Vector3 p1 = { 400.0f,400.0f,10.0f };
-	Vector3 p2 = { 700.0f,100.0f,10.0f };
-	int link = 32;
-	int index = 0;
-
-	Vector3 a = { 100.0f,100.0f,10.0f };
-
-
-
-
+	Vector3 controlPoint[3] = {
+		{-0.8f,0.58f,1.0f},
+		{1.76f,1.0f,-0.3f},
+		{0.94f,-0.7f,2.3f}
+	};
 
 	Vector3 cameraPosition = { 0.0f ,0.0f,-20.0f };
 	Vector3 cameraTranslate = { 0.0f,-1.0f,-6.49f };
@@ -135,40 +156,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 WorldViewProjectionMatrix = myMath_->Multiply(worldMatrix, myMath_->Multiply(viewMatrix, projectionMatrix));
 		Matrix4x4 viewportMatrix = myMath_->MakeViewportMatrix(0, 0, float(1280.0f), float(720.0f), 0.0f, 1.0f);
 
-		Vector3 pw0 = World(p0);
-		Vector3 pw1 = World(p1);
-		Vector3 pw2 = World(p2);
 
-		Novice::DrawEllipse((int)pw0.x, (int)pw0.y, 10, 10, 0.0f, WHITE, kFillModeSolid);
-		Novice::DrawEllipse((int)pw1.x, (int)pw1.y, 10, 10, 0.0f, WHITE, kFillModeSolid);
-		Novice::DrawEllipse((int)pw2.x, (int)pw2.y, 10, 10, 0.0f, WHITE, kFillModeSolid);
-
-
-
-		Vector3 pw0Screen = Transform(Transform(pw0, WorldViewProjectionMatrix), viewportMatrix);
-		Vector3 pw1Screen = Transform(Transform(pw1, WorldViewProjectionMatrix), viewportMatrix);
-		Vector3 pw2Screen = Transform(Transform(pw2, WorldViewProjectionMatrix), viewportMatrix);
-
-		for (index = 0; index < link; index++) {
-			float t0 = index / float(link);
-			float t1 = index / float(link);
-
-			Vector3 bezier0 = Bezier(pw0, pw1, t0);
-			Vector3 bezier1 = Bezier(pw1, pw2, t1);
-			Vector3 p = Bezier(bezier0, bezier1, t0);
-
-			if (index == 0) {
-				Novice::DrawLine((int)pw0.x, (int)pw0.y, (int)a.x, (int)a.y, BLUE);
-			}
-			else {
-				Novice::DrawLine((int)a.x, (int)a.y, (int)p.x, (int)p.y, BLUE);
-			}
-			a.x = p.x;
-			a.y = p.y;
-
-
-		}
-
+		DrawBezier(controlPoint[0], controlPoint[1], controlPoint[2], WorldViewProjectionMatrix, viewportMatrix,BLUE);
 
 		DrawGrid(WorldViewProjectionMatrix, viewportMatrix);
 
@@ -176,9 +165,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
 
-		ImGui::DragFloat3("pw0", &pw0.x, 0.1f);
-		ImGui::DragFloat3("pw0S", &pw0Screen.x, 0.1f);
-
+		ImGui::DragFloat3("p0", &controlPoint[0].x, 0.1f);
+		ImGui::DragFloat3("p1", &controlPoint[1].x, 0.1f);
+		ImGui::DragFloat3("p2", &controlPoint[2].x, 0.1f);
 
 		ImGui::End();
 
